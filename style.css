@@ -501,6 +501,85 @@ input[type="range"]::-webkit-slider-thumb {
   flex: 2;
 }
 
+/* === Dual Train Grid === */
+.dual-train-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.dual-train-col {
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 8px;
+}
+
+.train-label-bar {
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 2px;
+  padding: 4px;
+  border-radius: 4px;
+  margin-bottom: 6px;
+}
+
+.train-a-bar { background: rgba(230, 57, 70, 0.2); color: #e63946; }
+.train-b-bar { background: rgba(72, 149, 239, 0.2); color: #4895ef; }
+
+.train-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+.train-a-dot { background: #e63946; }
+.train-b-dot { background: #4895ef; }
+
+.mini-stat {
+  display: flex;
+  justify-content: space-between;
+  padding: 3px 4px;
+  font-size: 0.65rem;
+  font-family: var(--font-mono);
+  border-bottom: 1px solid rgba(42, 54, 80, 0.3);
+}
+
+.mini-stat:last-child { border-bottom: none; }
+.mini-label { color: var(--text-muted); }
+.mini-value { color: var(--text-primary); font-weight: 600; }
+
+/* === Catenary Power Flow === */
+.catenary-bar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.catenary-segment {
+  flex: 1;
+  text-align: center;
+  padding: 6px 4px;
+  border-radius: 4px;
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.cat-gen { background: rgba(6, 214, 160, 0.15); color: var(--energy-generated); }
+.cat-con { background: rgba(230, 57, 70, 0.15); color: var(--energy-consumed); }
+.cat-dc  { background: rgba(69, 123, 157, 0.2); color: var(--energy-surplus); }
+
+.catenary-arrow {
+  font-size: 0.75rem;
+  color: var(--accent-gold);
+  flex-shrink: 0;
+}
+
 /* === Responsive === */
 @media (max-width: 900px) {
   #main-layout {

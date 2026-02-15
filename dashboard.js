@@ -2,14 +2,14 @@
  * Infinitrain Dashboard Controller
  * ==================================
  * Updates gauges, stats, phase indicators, and energy flow bar.
+ * Supports dual-train mode with catenary transfer display.
  */
 
 const Dashboard = (() => {
-  // Gauge canvases
   let gaugeGenCtx, gaugeConCtx, gaugeSurCtx;
 
-  // Max values for gauge scaling (peak descent power ~7.6 MW with 8 wagons)
-  const MAX_POWER_MW = 10; // max gauge range
+  // Max values for gauge scaling (combined two-train peak ~8 MW)
+  const MAX_POWER_MW = 10;
 
   function init() {
     gaugeGenCtx = document.getElementById('gauge-generated').getContext('2d');
@@ -17,34 +17,47 @@ const Dashboard = (() => {
     gaugeSurCtx = document.getElementById('gauge-surplus').getContext('2d');
   }
 
-  function update(metrics) {
-    // === Gauges ===
-    drawGauge(gaugeGenCtx, metrics.powerGenerated_MW, MAX_POWER_MW, '#06d6a0', 140);
-    drawGauge(gaugeConCtx, metrics.powerConsumed_MW, MAX_POWER_MW, '#e63946', 140);
-    drawGauge(gaugeSurCtx, Math.max(0, metrics.powerSurplus_MW), MAX_POWER_MW, '#457b9d', 140);
+  // Accept combined metrics from two trains
+  function update(combined) {
+    const mA = combined.trainA;
+    const mB = combined.trainB;
 
-    // Gauge values
-    document.getElementById('val-generated').textContent = formatPower(metrics.powerGenerated_MW);
-    document.getElementById('val-consumed').textContent = formatPower(metrics.powerConsumed_MW);
-    document.getElementById('val-surplus').textContent = formatPower(Math.max(0, metrics.powerSurplus_MW));
+    // === Gauges (combined power) ===
+    drawGauge(gaugeGenCtx, combined.powerGenerated_MW, MAX_POWER_MW, '#06d6a0', 140);
+    drawGauge(gaugeConCtx, combined.powerConsumed_MW, MAX_POWER_MW, '#e63946', 140);
+    drawGauge(gaugeSurCtx, Math.max(0, combined.powerSurplus_MW), MAX_POWER_MW, '#457b9d', 140);
 
-    // === Train Status ===
-    document.getElementById('val-altitude').textContent = Math.round(metrics.altitude).toLocaleString() + ' m';
-    document.getElementById('val-speed').textContent = metrics.speedKmh.toFixed(1) + ' km/h';
-    document.getElementById('val-water').textContent = metrics.waterPercent.toFixed(0) + '%';
-    document.getElementById('val-dynamo').textContent = metrics.dynamoOutput_kW.toFixed(0) + ' kW';
+    document.getElementById('val-generated').textContent = formatPower(combined.powerGenerated_MW);
+    document.getElementById('val-consumed').textContent = formatPower(combined.powerConsumed_MW);
+    document.getElementById('val-surplus').textContent = formatPower(Math.max(0, combined.powerSurplus_MW));
 
-    // === Phase ===
-    updatePhase(metrics.phase);
+    // === Train A status ===
+    document.getElementById('val-phase-a').textContent = capitalize(mA.phase);
+    document.getElementById('val-alt-a').textContent = Math.round(mA.altitude).toLocaleString() + ' m';
+    document.getElementById('val-speed-a').textContent = mA.speedKmh.toFixed(1) + ' km/h';
+    document.getElementById('val-water-a').textContent = mA.waterPercent.toFixed(0) + '%';
+
+    // === Train B status ===
+    document.getElementById('val-phase-b').textContent = capitalize(mB.phase);
+    document.getElementById('val-alt-b').textContent = Math.round(mB.altitude).toLocaleString() + ' m';
+    document.getElementById('val-speed-b').textContent = mB.speedKmh.toFixed(1) + ' km/h';
+    document.getElementById('val-water-b').textContent = mB.waterPercent.toFixed(0) + '%';
+
+    // === Catenary transfer ===
+    const genLabel = mA.powerGenerated_MW > mB.powerGenerated_MW ? 'A' : 'B';
+    const conLabel = mA.powerConsumed_MW > mB.powerConsumed_MW ? 'A' : 'B';
+    document.getElementById('cat-gen-label').textContent = genLabel + ': ' + formatPower(combined.powerGenerated_MW);
+    document.getElementById('cat-con-label').textContent = conLabel + ': ' + formatPower(combined.powerConsumed_MW);
+    document.getElementById('cat-dc-label').textContent = 'DC: ' + formatPower(Math.max(0, combined.powerSurplus_MW));
 
     // === Cumulative ===
-    document.getElementById('val-total-energy').textContent = metrics.totalGenerated_MWh.toFixed(2);
-    document.getElementById('val-total-cycles').textContent = metrics.totalCycles;
-    document.getElementById('val-total-water').textContent = metrics.totalWater_ML.toFixed(2);
-    document.getElementById('val-efficiency').textContent = metrics.efficiency.toFixed(1) + '%';
+    document.getElementById('val-total-energy').textContent = combined.totalGenerated_MWh.toFixed(2);
+    document.getElementById('val-total-cycles').textContent = combined.totalCycles;
+    document.getElementById('val-total-water').textContent = combined.totalWater_ML.toFixed(2);
+    document.getElementById('val-efficiency').textContent = combined.efficiency.toFixed(1) + '%';
 
     // === Energy Flow Bar ===
-    updateFlowBar(metrics);
+    updateFlowBar(combined);
   }
 
   function drawGauge(ctx, value, max, color, size) {
@@ -59,7 +72,6 @@ const Dashboard = (() => {
 
     ctx.clearRect(0, 0, s, s);
 
-    // Background arc
     ctx.beginPath();
     ctx.arc(cx, cy, r, startAngle, endAngle);
     ctx.strokeStyle = 'rgba(42, 54, 80, 0.6)';
@@ -67,7 +79,6 @@ const Dashboard = (() => {
     ctx.lineCap = 'round';
     ctx.stroke();
 
-    // Value arc
     if (fraction > 0.001) {
       ctx.beginPath();
       ctx.arc(cx, cy, r, startAngle, startAngle + fraction * range);
@@ -76,7 +87,6 @@ const Dashboard = (() => {
       ctx.lineCap = 'round';
       ctx.stroke();
 
-      // Glow
       ctx.beginPath();
       ctx.arc(cx, cy, r, startAngle, startAngle + fraction * range);
       ctx.strokeStyle = color;
@@ -87,7 +97,6 @@ const Dashboard = (() => {
       ctx.globalAlpha = 1;
     }
 
-    // Center value
     ctx.font = 'bold 16px monospace';
     ctx.fillStyle = '#e8ecf4';
     ctx.textAlign = 'center';
@@ -99,34 +108,17 @@ const Dashboard = (() => {
     ctx.fillText('kW', cx, cy + 14);
   }
 
-  function updatePhase(phase) {
-    const phases = ['loading', 'descending', 'unloading', 'ascending'];
-    const ids = ['phase-load', 'phase-descend', 'phase-unload', 'phase-ascend'];
-
-    for (let i = 0; i < phases.length; i++) {
-      const el = document.getElementById(ids[i]);
-      if (phases[i] === phase) {
-        el.classList.add('active');
-      } else {
-        el.classList.remove('active');
-      }
-    }
-  }
-
   function updateFlowBar(metrics) {
     const gen = Math.max(0.01, metrics.powerGenerated_MW);
     const con = Math.max(0.01, metrics.powerConsumed_MW);
     const sur = Math.max(0.01, metrics.powerSurplus_MW);
     const total = gen + con + Math.max(0, sur);
 
-    if (metrics.phase === 'descending') {
+    const isActive = gen > 0.05 || con > 0.05;
+    if (isActive) {
       document.getElementById('flow-generated').style.flex = (gen / total * 10).toFixed(2);
-      document.getElementById('flow-consumed').style.flex = '0.5';
-      document.getElementById('flow-surplus').style.flex = (Math.max(0, sur) / total * 10).toFixed(2);
-    } else if (metrics.phase === 'ascending') {
-      document.getElementById('flow-generated').style.flex = '0.5';
-      document.getElementById('flow-consumed').style.flex = (con / 0.05 * 2).toFixed(2);
-      document.getElementById('flow-surplus').style.flex = '0.5';
+      document.getElementById('flow-consumed').style.flex = (con / total * 10).toFixed(2);
+      document.getElementById('flow-surplus').style.flex = (Math.max(0.3, sur) / total * 10).toFixed(2);
     } else {
       document.getElementById('flow-generated').style.flex = '3';
       document.getElementById('flow-consumed').style.flex = '1';
@@ -142,6 +134,10 @@ const Dashboard = (() => {
     if (mw < 0.001) return '0 W';
     if (mw < 1) return (mw * 1000).toFixed(0) + ' kW';
     return mw.toFixed(2) + ' MW';
+  }
+
+  function capitalize(s) {
+    return s.charAt(0).toUpperCase() + s.slice(1);
   }
 
   return { init, update };

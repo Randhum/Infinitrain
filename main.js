@@ -1,19 +1,20 @@
 /**
  * Infinitrain Main Controller
  * =============================
- * Ties together physics, visualization, and dashboard.
- * Manages simulation loop, controls, and clock.
+ * Dual-train anti-phase simulation with catenary power transfer.
+ * Train A starts at loading (summit), Train B starts mid-ascent (offset).
  */
 
 (function () {
   'use strict';
 
   // === State ===
-  let simState = Physics.createState(Physics.DEFAULT_WAGON_COUNT);
+  let stateA = Physics.createState(Physics.DEFAULT_WAGON_COUNT);
+  let stateB = Physics.createOffsetState(Physics.DEFAULT_WAGON_COUNT);
   let running = false;
   let simSpeed = 1;
   let lastFrameTime = null;
-  let simClock = 0; // simulated seconds elapsed
+  let simClock = 0;
   let animFrameId = null;
 
   // === DOM refs ===
@@ -33,7 +34,6 @@
     HelixRenderer.init(document.getElementById('helix-canvas'));
     Dashboard.init();
 
-    // Event listeners
     btnStart.addEventListener('click', start);
     btnPause.addEventListener('click', pause);
     btnReset.addEventListener('click', reset);
@@ -46,17 +46,13 @@
     wagonSlider.addEventListener('input', (e) => {
       const count = parseInt(e.target.value);
       wagonLabel.textContent = count;
-      // Only apply wagon change during loading phase to avoid physics issues
-      if (simState.phase === 'loading' || !running) {
-        simState.wagonCount = count;
-      }
+      // Only apply wagon change during safe phases
+      if (stateA.phase === 'loading' || !running) stateA.wagonCount = count;
+      if (stateB.phase === 'loading' || !running) stateB.wagonCount = count;
     });
 
-    // Initial render
     renderFrame(performance.now());
     updateUI();
-
-    // Auto-start for immediate gratification
     start();
   }
 
@@ -80,7 +76,9 @@
     running = false;
     if (animFrameId) cancelAnimationFrame(animFrameId);
     animFrameId = null;
-    simState = Physics.createState(parseInt(wagonSlider.value));
+    const count = parseInt(wagonSlider.value);
+    stateA = Physics.createState(count);
+    stateB = Physics.createOffsetState(count);
     simClock = 0;
     lastFrameTime = null;
     updateUI();
@@ -105,22 +103,20 @@
   function loop() {
     if (!running) return;
     animFrameId = requestAnimationFrame((timestamp) => {
-      if (lastFrameTime === null) {
-        lastFrameTime = timestamp;
-      }
+      if (lastFrameTime === null) lastFrameTime = timestamp;
 
-      const realDt = Math.min((timestamp - lastFrameTime) / 1000, 0.1); // cap at 100ms
+      const realDt = Math.min((timestamp - lastFrameTime) / 1000, 0.1);
       lastFrameTime = timestamp;
 
-      // Simulated time step
       const simDt = realDt * simSpeed;
       simClock += simDt;
 
-      // Physics steps (sub-step for stability at high speeds)
+      // Sub-stepping for stability
       const subSteps = Math.max(1, Math.ceil(simSpeed / 5));
       const subDt = simDt / subSteps;
       for (let i = 0; i < subSteps; i++) {
-        simState = Physics.step(simState, subDt);
+        stateA = Physics.step(stateA, subDt);
+        stateB = Physics.step(stateB, subDt);
       }
 
       renderFrame(timestamp);
@@ -129,14 +125,14 @@
   }
 
   function renderFrame(timestamp) {
-    // Update visualization
-    HelixRenderer.render(simState, timestamp);
+    const combined = Physics.getCombinedMetrics(stateA, stateB);
 
-    // Update dashboard
-    const metrics = Physics.getMetrics(simState);
-    Dashboard.update(metrics);
+    // Visualization gets both states + combined metrics
+    HelixRenderer.render({ stateA, stateB, combined }, timestamp);
 
-    // Update clock
+    // Dashboard gets combined metrics
+    Dashboard.update(combined);
+
     updateClock();
   }
 

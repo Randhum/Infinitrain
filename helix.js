@@ -24,9 +24,12 @@ const HelixRenderer = (() => {
   const COL_TRACK_DOWN = '#06d6a0';
   const COL_TRACK_UP = '#457b9d';
   const COL_TRACK_SHADOW = 'rgba(0,0,0,0.3)';
-  const COL_TRAIN = '#e63946';
+  const COL_TRAIN_A = '#e63946';
+  const COL_TRAIN_B = '#4895ef';
   const COL_TRAIN_WATER = '#1d7bba';
-  const COL_WAGON = '#f4a261';
+  const COL_WAGON_A = '#f4a261';
+  const COL_WAGON_B = '#7ec8e3';
+  const COL_CATENARY = '#ffeb3b';
   const COL_GROUND = '#162030';
   const COL_WATER_STATION = '#2ec4b6';
   const COL_STARS = 'rgba(255,255,255,0.4)';
@@ -97,7 +100,13 @@ const HelixRenderer = (() => {
   }
 
   // === Drawing ===
-  function render(state, time) {
+  // render accepts either a single state (legacy) or { stateA, stateB, combined }
+  function render(stateOrDual, time) {
+    const dual = stateOrDual.stateA !== undefined;
+    const stateA = dual ? stateOrDual.stateA : stateOrDual;
+    const stateB = dual ? stateOrDual.stateB : null;
+    const combined = dual ? stateOrDual.combined : null;
+
     const w = width / devicePixelRatio;
     const h = height / devicePixelRatio;
     ctx.clearRect(0, 0, w, h);
@@ -118,7 +127,6 @@ const HelixRenderer = (() => {
     const yTop = PADDING_TOP;
     const yBottom = PADDING_TOP + vizH;
 
-    const helixSpacing = vizW * 0.35;
     const helixCenterLeft = w * 0.35;
     const helixCenterRight = w * 0.65;
     const helixRadius = Math.min(vizW * 0.12, 70);
@@ -136,26 +144,34 @@ const HelixRenderer = (() => {
     const turns = Physics.HELIX_TURNS_DOWN;
     const segsPerTurn = 40;
 
-    // Descending helix (left)
     const downPts = generateHelixPoints(helixCenterLeft, yTop, yBottom, turns, helixRadius, segsPerTurn);
     drawHelix(downPts, COL_TRACK_DOWN, 'DESCENT');
 
-    // Ascending helix (right)
     const upPts = generateHelixPoints(helixCenterRight, yTop, yBottom, turns, helixRadius, segsPerTurn);
-    // Reverse so ascending goes bottom to top visually
     drawHelix(upPts, COL_TRACK_UP, 'ASCENT');
 
-    // Connection at top
     drawConnection(helixCenterLeft, helixCenterRight, yTop, 'top');
-    // Connection at bottom
     drawConnection(helixCenterLeft, helixCenterRight, yBottom, 'bottom');
 
-    // Draw train
-    drawTrain(state, helixCenterLeft, helixCenterRight, yTop, yBottom, turns, helixRadius, time);
+    // Draw Train A (red)
+    drawTrainOnTrack(stateA, helixCenterLeft, helixCenterRight, yTop, yBottom, turns, helixRadius, time, COL_TRAIN_A, COL_WAGON_A, 'A');
 
-    // Energy particles
-    if (state.phase === 'descending') {
-      drawEnergyParticles(state, helixCenterLeft, yTop, yBottom, turns, helixRadius, time);
+    // Draw Train B (blue) if dual mode
+    if (stateB) {
+      drawTrainOnTrack(stateB, helixCenterLeft, helixCenterRight, yTop, yBottom, turns, helixRadius, time, COL_TRAIN_B, COL_WAGON_B, 'B');
+    }
+
+    // Energy particles for any descending train
+    if (stateA.phase === 'descending') {
+      drawEnergyParticles(stateA, helixCenterLeft, yTop, yBottom, turns, helixRadius, time);
+    }
+    if (stateB && stateB.phase === 'descending') {
+      drawEnergyParticles(stateB, helixCenterLeft, yTop, yBottom, turns, helixRadius, time);
+    }
+
+    // Catenary power flow visualization (when one generates and other consumes)
+    if (combined && combined.catenaryTransfer_MW > 0.01) {
+      drawCatenaryFlow(helixCenterLeft, helixCenterRight, yTop, yBottom, combined.catenaryTransfer_MW, time);
     }
   }
 
@@ -300,36 +316,27 @@ const HelixRenderer = (() => {
     ctx.setLineDash([]);
   }
 
-  function drawTrain(state, cxLeft, cxRight, yTop, yBottom, turns, radius, time) {
+  function drawTrainOnTrack(state, cxLeft, cxRight, yTop, yBottom, turns, radius, time, colLoco, colWagon, label) {
     let pos;
-    const wagonCount = state.wagonCount;
-
     if (state.phase === 'loading') {
-      // At summit, on left helix start
       pos = getHelixPos(cxLeft, yTop, yBottom, turns, radius, 0);
-      drawTrainAt(pos, state, time, true);
     } else if (state.phase === 'descending') {
       pos = getHelixPos(cxLeft, yTop, yBottom, turns, radius, state.trackProgress);
-      drawTrainAt(pos, state, time, true);
     } else if (state.phase === 'unloading') {
-      // At valley, transition area
       pos = getHelixPos(cxRight, yTop, yBottom, turns, radius, 1);
-      drawTrainAt(pos, state, time, false);
     } else if (state.phase === 'ascending') {
-      // On right helix, going from bottom (1) to top (0)
       const ascProgress = 1 - state.trackProgress;
       pos = getHelixPos(cxRight, yTop, yBottom, turns, radius, ascProgress);
-      drawTrainAt(pos, state, time, false);
     }
+    if (pos) drawTrainAt(pos, state, time, colLoco, colWagon, label);
   }
 
-  function drawTrainAt(pos, state, time, isDescending) {
+  function drawTrainAt(pos, state, time, colLoco, colWagon, label) {
     const { x, y, z } = pos;
     const depth = (z + 1) / 2;
     const scale = 0.7 + depth * 0.5;
     const alpha = 0.4 + depth * 0.6;
 
-    // Locomotive
     const locoW = 18 * scale;
     const locoH = 10 * scale;
 
@@ -338,42 +345,37 @@ const HelixRenderer = (() => {
     ctx.fillRect(x - locoW / 2 + 2, y + 2, locoW, locoH);
 
     // Loco body
-    ctx.fillStyle = colorWithAlpha(COL_TRAIN, alpha);
+    ctx.fillStyle = colorWithAlpha(colLoco, alpha);
     ctx.fillRect(x - locoW / 2, y - locoH / 2, locoW, locoH);
 
-    // Swiss cross on locomotive
+    // Train label (A/B)
     ctx.fillStyle = colorWithAlpha('#ffffff', alpha * 0.9);
-    const cx = x;
-    const cy = y;
-    const crossSize = 3 * scale;
-    ctx.fillRect(cx - crossSize / 6, cy - crossSize / 2, crossSize / 3, crossSize);
-    ctx.fillRect(cx - crossSize / 2, cy - crossSize / 6, crossSize, crossSize / 3);
+    ctx.font = `bold ${7 * scale}px monospace`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(label, x, y);
 
-    // Wagons (behind locomotive, spaced along the helix slightly)
+    // Wagons
     const wagonW = 14 * scale;
     const wagonH = 8 * scale;
     const wagonSpacing = 5 * scale;
 
-    for (let i = 0; i < Math.min(state.wagonCount, 6); i++) {
-      const offsetY = (i + 1) * (wagonH + wagonSpacing) * (isDescending ? -1 : -1);
+    for (let i = 0; i < Math.min(state.wagonCount, 5); i++) {
+      const offsetY = (i + 1) * (wagonH + wagonSpacing) * -1;
       const wy = y + offsetY;
 
-      // Wagon shadow
       ctx.fillStyle = `rgba(0,0,0,${0.2 * alpha})`;
       ctx.fillRect(x - wagonW / 2 + 2, wy + 2, wagonW, wagonH);
 
-      // Wagon body
-      ctx.fillStyle = colorWithAlpha(COL_WAGON, alpha * 0.8);
+      ctx.fillStyle = colorWithAlpha(colWagon, alpha * 0.8);
       ctx.fillRect(x - wagonW / 2, wy - wagonH / 2, wagonW, wagonH);
 
-      // Water level in wagon
       if (state.waterFraction > 0) {
         const waterH = wagonH * state.waterFraction;
         ctx.fillStyle = colorWithAlpha(COL_TRAIN_WATER, alpha * 0.7);
         ctx.fillRect(x - wagonW / 2 + 1, wy - wagonH / 2 + (wagonH - waterH), wagonW - 2, waterH);
       }
 
-      // Dynamo spark when generating
       if (state.phase === 'descending' && state.speed > 1) {
         const sparkIntensity = Math.sin(time * 0.01 + i * 1.5) * 0.5 + 0.5;
         ctx.fillStyle = colorWithAlpha('#ffeb3b', alpha * sparkIntensity * 0.8);
@@ -383,13 +385,60 @@ const HelixRenderer = (() => {
       }
     }
 
-    // Wagon count indicator if more than 6
-    if (state.wagonCount > 6) {
-      ctx.font = `${8 * scale}px monospace`;
-      ctx.fillStyle = colorWithAlpha('#ffffff', alpha * 0.6);
+    if (state.wagonCount > 5) {
+      ctx.font = `${7 * scale}px monospace`;
+      ctx.fillStyle = colorWithAlpha('#ffffff', alpha * 0.5);
       ctx.textAlign = 'center';
-      ctx.fillText(`+${state.wagonCount - 6} more`, x, y - (7 * (wagonH + wagonSpacing)) * 0.9);
+      ctx.textBaseline = 'alphabetic';
+      ctx.fillText(`+${state.wagonCount - 5}`, x, y - (6 * (wagonH + wagonSpacing)) * 0.9);
     }
+  }
+
+  // Catenary power flow: animated energy arcs between the two helixes
+  function drawCatenaryFlow(cxLeft, cxRight, yTop, yBottom, transferMW, time) {
+    const midX = (cxLeft + cxRight) / 2;
+    const midY = (yTop + yBottom) / 2;
+    const intensity = Math.min(1, transferMW / 5);
+    const numBolts = 5 + Math.floor(intensity * 10);
+
+    for (let i = 0; i < numBolts; i++) {
+      const t = (time * 0.0004 + i / numBolts) % 1;
+      const yPos = yTop + t * (yBottom - yTop);
+      const progress = Math.sin(t * Math.PI); // fade in/out
+      const alpha = 0.15 + 0.4 * intensity * progress;
+
+      // Draw a small energy bolt from left helix to right
+      ctx.strokeStyle = colorWithAlpha(COL_CATENARY, alpha);
+      ctx.lineWidth = 1 + intensity;
+      ctx.setLineDash([3, 5]);
+      ctx.beginPath();
+      ctx.moveTo(cxLeft + 20, yPos);
+      ctx.quadraticCurveTo(midX, yPos - 8 + Math.sin(time * 0.003 + i) * 6, cxRight - 20, yPos);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+
+    // Catenary label
+    ctx.font = '9px monospace';
+    ctx.fillStyle = colorWithAlpha(COL_CATENARY, 0.7);
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'alphabetic';
+    ctx.fillText('CATENARY ' + transferMW.toFixed(1) + ' MW', midX, midY - 8);
+
+    // Power flow arrow
+    const arrowX = midX;
+    const arrowY = midY + 4;
+    ctx.fillStyle = colorWithAlpha(COL_CATENARY, 0.5);
+    ctx.beginPath();
+    ctx.moveTo(arrowX - 20, arrowY);
+    ctx.lineTo(arrowX + 14, arrowY);
+    ctx.lineTo(arrowX + 14, arrowY - 3);
+    ctx.lineTo(arrowX + 22, arrowY + 2);
+    ctx.lineTo(arrowX + 14, arrowY + 7);
+    ctx.lineTo(arrowX + 14, arrowY + 4);
+    ctx.lineTo(arrowX - 20, arrowY + 4);
+    ctx.closePath();
+    ctx.fill();
   }
 
   function drawEnergyParticles(state, cx, yTop, yBottom, turns, radius, time) {

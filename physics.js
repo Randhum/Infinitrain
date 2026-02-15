@@ -342,6 +342,55 @@ const Physics = (() => {
     };
   }
 
+  // === Dual-Train Support ===
+
+  // Create a state pre-advanced to mid-ascent (half-cycle offset)
+  function createOffsetState(wagonCount = DEFAULT_WAGON_COUNT) {
+    const s = createState(wagonCount);
+    s.phase = 'ascending';
+    s.trackProgress = 0.5;
+    s.waterFraction = 0;
+    s.speed = TARGET_SPEED_UP;
+    s.altitude = VALLEY_ALT + 0.5 * HEIGHT_DIFF;
+    s.totalMass = getTotalMass(s);
+    return s;
+  }
+
+  // Combine metrics from two trains into a unified view
+  function getCombinedMetrics(stateA, stateB) {
+    const mA = getMetrics(stateA);
+    const mB = getMetrics(stateB);
+
+    const totalGen = mA.powerGenerated_MW + mB.powerGenerated_MW;
+    const totalCon = mA.powerConsumed_MW + mB.powerConsumed_MW;
+    const catenaryTransfer = Math.min(totalGen, totalCon); // direct wire transfer
+    const surplus = totalGen - totalCon;
+
+    const cumGen = mA.totalGenerated_MWh + mB.totalGenerated_MWh;
+    const cumCon = mA.totalConsumed_MWh + mB.totalConsumed_MWh;
+    const cumEff = cumGen > 0 ? ((cumGen - cumCon) / cumGen * 100) : 0;
+
+    return {
+      // Per-train
+      trainA: mA,
+      trainB: mB,
+
+      // Combined instantaneous (MW)
+      powerGenerated_MW: totalGen,
+      powerConsumed_MW: totalCon,
+      powerSurplus_MW: surplus,
+      catenaryTransfer_MW: catenaryTransfer,
+
+      // Cumulative
+      totalGenerated_MWh: cumGen,
+      totalConsumed_MWh: cumCon,
+      totalSurplus_MWh: cumGen - cumCon,
+      efficiency: cumEff,
+      totalCycles: mA.totalCycles + mB.totalCycles,
+      totalWater_ML: mA.totalWater_ML + mB.totalWater_ML,
+    };
+  }
+
   return {
     G, SUMMIT_ALT, VALLEY_ALT, HEIGHT_DIFF,
     HELIX_TURNS_DOWN, HELIX_TURNS_UP, HELIX_RADIUS,
@@ -350,10 +399,13 @@ const Physics = (() => {
     LOAD_TIME, UNLOAD_TIME,
     DEFAULT_WAGON_COUNT,
     MAX_SPEED_DOWN, MAX_SPEED_UP,
+    TARGET_SPEED_UP,
     createState,
+    createOffsetState,
     getTotalMass,
     step,
     getMetrics,
+    getCombinedMetrics,
     theoreticalCycleEnergy,
   };
 })();
