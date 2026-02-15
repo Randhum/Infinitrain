@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Infinitrain — Gravity Battery Power Generator</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="app">
+    <!-- Header -->
+    <header id="header">
+      <div class="header-left">
+        <h1>INFINITRAIN</h1>
+        <span class="subtitle">Swiss Precision Gravity Battery</span>
+      </div>
+      <div class="header-right">
+        <div class="clock" id="clock">00:00:00</div>
+        <div class="status-indicator" id="status-indicator">
+          <span class="dot running"></span>
+          <span id="status-text">RUNNING</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Layout -->
+    <div id="main-layout">
+      <!-- Left Panel: 3D Visualization -->
+      <div id="viz-panel">
+        <canvas id="helix-canvas"></canvas>
+        <div id="viz-overlay">
+          <div class="viz-label" id="mountain-label">Mountain Summit — 2,400m</div>
+          <div class="viz-label" id="valley-label">Valley Station — 400m</div>
+        </div>
+      </div>
+
+      <!-- Right Panel: Dashboard -->
+      <div id="dashboard">
+        <!-- Energy Gauges -->
+        <section class="dash-section">
+          <h2>Energy Output</h2>
+          <div class="gauge-row">
+            <div class="gauge-card">
+              <canvas id="gauge-generated" width="140" height="140"></canvas>
+              <div class="gauge-label">Generated</div>
+              <div class="gauge-value" id="val-generated">0 MW</div>
+            </div>
+            <div class="gauge-card">
+              <canvas id="gauge-consumed" width="140" height="140"></canvas>
+              <div class="gauge-label">Return Trip</div>
+              <div class="gauge-value" id="val-consumed">0 MW</div>
+            </div>
+            <div class="gauge-card">
+              <canvas id="gauge-surplus" width="140" height="140"></canvas>
+              <div class="gauge-label">Datacenter</div>
+              <div class="gauge-value" id="val-surplus">0 MW</div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Train Status -->
+        <section class="dash-section">
+          <h2>Train Status</h2>
+          <div class="train-status-grid">
+            <div class="stat-card">
+              <div class="stat-icon">&#9681;</div>
+              <div class="stat-info">
+                <div class="stat-value" id="val-altitude">2400 m</div>
+                <div class="stat-label">Altitude</div>
+              </div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon">&#9878;</div>
+              <div class="stat-info">
+                <div class="stat-value" id="val-speed">0 km/h</div>
+                <div class="stat-label">Speed</div>
+              </div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon">&#9829;</div>
+              <div class="stat-info">
+                <div class="stat-value" id="val-water">100%</div>
+                <div class="stat-label">Water Load</div>
+              </div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon">&#9889;</div>
+              <div class="stat-info">
+                <div class="stat-value" id="val-dynamo">0 kW</div>
+                <div class="stat-label">Dynamo Output</div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Phase Indicator -->
+        <section class="dash-section">
+          <h2>Operation Phase</h2>
+          <div class="phase-bar">
+            <div class="phase active" id="phase-load">
+              <div class="phase-dot"></div>
+              <span>Loading</span>
+            </div>
+            <div class="phase-connector"></div>
+            <div class="phase" id="phase-descend">
+              <div class="phase-dot"></div>
+              <span>Descending</span>
+            </div>
+            <div class="phase-connector"></div>
+            <div class="phase" id="phase-unload">
+              <div class="phase-dot"></div>
+              <span>Unloading</span>
+            </div>
+            <div class="phase-connector"></div>
+            <div class="phase" id="phase-ascend">
+              <div class="phase-dot"></div>
+              <span>Ascending</span>
+            </div>
+          </div>
+        </section>
+
+        <!-- Cumulative Stats -->
+        <section class="dash-section">
+          <h2>Cumulative Performance</h2>
+          <div class="cumulative-grid">
+            <div class="cum-stat">
+              <div class="cum-value" id="val-total-energy">0</div>
+              <div class="cum-label">MWh Generated</div>
+            </div>
+            <div class="cum-stat">
+              <div class="cum-value" id="val-total-cycles">0</div>
+              <div class="cum-label">Cycles Complete</div>
+            </div>
+            <div class="cum-stat">
+              <div class="cum-value" id="val-total-water">0</div>
+              <div class="cum-label">Megalitres Moved</div>
+            </div>
+            <div class="cum-stat">
+              <div class="cum-value" id="val-efficiency">0%</div>
+              <div class="cum-label">Net Efficiency</div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Controls -->
+        <section class="dash-section controls-section">
+          <h2>Controls</h2>
+          <div class="controls-row">
+            <button id="btn-start" class="ctrl-btn primary">&#9654; Start</button>
+            <button id="btn-pause" class="ctrl-btn">&#10074;&#10074; Pause</button>
+            <button id="btn-reset" class="ctrl-btn danger">&#8634; Reset</button>
+          </div>
+          <div class="slider-group">
+            <label>Simulation Speed: <span id="speed-label">1x</span></label>
+            <input type="range" id="sim-speed" min="1" max="20" value="1">
+          </div>
+          <div class="slider-group">
+            <label>Wagons: <span id="wagon-label">8</span></label>
+            <input type="range" id="wagon-count" min="2" max="20" value="8">
+          </div>
+        </section>
+      </div>
+    </div>
+
+    <!-- Energy Flow Bar -->
+    <div id="energy-flow-bar">
+      <div class="flow-segment generated" id="flow-generated">
+        <span>Generated: <strong id="flow-gen-val">0 MW</strong></span>
+      </div>
+      <div class="flow-segment consumed" id="flow-consumed">
+        <span>Return: <strong id="flow-con-val">0 MW</strong></span>
+      </div>
+      <div class="flow-segment surplus" id="flow-surplus">
+        <span>Datacenter: <strong id="flow-sur-val">0 MW</strong></span>
+      </div>
+    </div>
+  </div>
+
+  <script src="physics.js"></script>
+  <script src="helix.js"></script>
+  <script src="dashboard.js"></script>
+  <script src="main.js"></script>
+</body>
+</html>
