@@ -29,7 +29,12 @@ const Dashboard = (() => {
 
     document.getElementById('val-generated').textContent = formatPower(combined.powerGenerated_MW);
     document.getElementById('val-consumed').textContent = formatPower(combined.powerConsumed_MW);
-    document.getElementById('val-surplus').textContent = formatPower(Math.max(0, combined.powerSurplus_MW));
+    const surplusEl = document.getElementById('val-surplus');
+    if (combined.powerSurplus_MW < -0.01) {
+      surplusEl.textContent = '\u26A1 BUFFER';
+    } else {
+      surplusEl.textContent = formatPower(combined.powerSurplus_MW);
+    }
 
     // === Train A status ===
     document.getElementById('val-phase-a').textContent = capitalize(mA.phase);
@@ -44,11 +49,18 @@ const Dashboard = (() => {
     document.getElementById('val-water-b').textContent = mB.waterPercent.toFixed(0) + '%';
 
     // === Catenary transfer ===
-    const genLabel = mA.powerGenerated_MW > mB.powerGenerated_MW ? 'A' : 'B';
-    const conLabel = mA.powerConsumed_MW > mB.powerConsumed_MW ? 'A' : 'B';
-    document.getElementById('cat-gen-label').textContent = genLabel + ': ' + formatPower(combined.powerGenerated_MW);
-    document.getElementById('cat-con-label').textContent = conLabel + ': ' + formatPower(combined.powerConsumed_MW);
-    document.getElementById('cat-dc-label').textContent = 'DC: ' + formatPower(Math.max(0, combined.powerSurplus_MW));
+    if (combined.bufferActive) {
+      // Neither train generating enough — buffer covers deficit
+      document.getElementById('cat-gen-label').textContent = 'GEN: ' + formatPower(combined.powerGenerated_MW);
+      document.getElementById('cat-con-label').textContent = 'LOAD: ' + formatPower(combined.powerConsumed_MW);
+      document.getElementById('cat-dc-label').textContent = 'BUFFER';
+    } else {
+      const genLabel = mA.powerGenerated_MW > mB.powerGenerated_MW ? 'A' : 'B';
+      const conLabel = mA.powerConsumed_MW > mB.powerConsumed_MW ? 'A' : 'B';
+      document.getElementById('cat-gen-label').textContent = genLabel + ': ' + formatPower(combined.powerGenerated_MW);
+      document.getElementById('cat-con-label').textContent = conLabel + ': ' + formatPower(combined.powerConsumed_MW);
+      document.getElementById('cat-dc-label').textContent = 'DC: ' + formatPower(Math.max(0, combined.powerSurplus_MW));
+    }
 
     // === Cumulative ===
     document.getElementById('val-total-energy').textContent = combined.totalGenerated_MWh.toFixed(2);

@@ -166,15 +166,21 @@ Infinitrain operates on an **isolated private catenary** — electrically indepe
 
 ## The Simulation
 
-An interactive browser-based simulation of **two trains running in anti-phase** on a shared catenary:
+An interactive browser-based simulation of **two trains running in anti-phase** on a shared catenary, with all architectural subsystems visualized:
 
-- **Dual-train visualization** — both Train A (red) and Train B (blue) rendered simultaneously on the double-helix track with depth shading, water-filled wagons, energy sparks during generation, and animated catenary power flow arcs between the helixes
+- **Dual-train visualization** — both Train A (red) and Train B (blue) rendered simultaneously on the double-helix track with depth shading, water-filled wagons with rounded tank profiles, energy sparks during generation, locomotive pantographs reaching to the catenary wire, and a roof bus bar connecting wagons
+- **Summit loading station** — animated reservoir (960 m3) with water level, 8 fill chutes dropping water into wagons during the loading phase, switch markers (SW-A, SW-B) at siding entry/exit
+- **Valley unloading station** — elevated trestle siding, 8 drain troughs below track, settling pond with animated water surface, river overflow outlet, switch markers (SW-C, SW-D)
+- **Catenary wire** — visible 15 kV overhead wire running along both helixes with support poles, animated power flow arcs between the spirals when energy transfers between trains
+- **Valley substation & datacenter** — SFC (static frequency converter, 5 MW) box with 200 kWh supercapacitor buffer, power line to datacenter building with blinking server rack LEDs, live MW reading
 - **Combined energy gauges** — total generated power, total return trip consumption, and net datacenter surplus from both trains combined
 - **Per-train telemetry** — side-by-side dashboard showing each train's phase, altitude, speed, and water load
 - **Catenary power flow display** — real-time visualization of which train generates, which consumes, and how much surplus flows to the datacenter through the overhead wire
 - **Cumulative statistics** — total MWh generated (both trains), cycles completed, megalitres of water moved, net efficiency
 - **Energy flow bar** — proportional visualization of combined energy distribution
 - **Controls** — start/pause/reset, simulation speed (1x–20x), wagon count (2–20)
+
+See [ARCHITECTURE.md](ARCHITECTURE.md) for detailed engineering specs behind each visual element.
 
 ## Running
 

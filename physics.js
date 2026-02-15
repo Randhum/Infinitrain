@@ -344,15 +344,38 @@ const Physics = (() => {
 
   // === Dual-Train Support ===
 
-  // Create a state pre-advanced to mid-ascent (half-cycle offset)
+  // Create a state pre-advanced by exactly half a cycle.
+  // We simulate forward through ~half the cycle time so the physics engine
+  // naturally places Train B at the correct anti-phase position.
+  // Cycle: ~300s load + ~1635s descent + ~180s unload + ~2047s ascent ≈ 4162s
+  // Half cycle ≈ 2081s → falls in the unloading phase.
   function createOffsetState(wagonCount = DEFAULT_WAGON_COUNT) {
-    const s = createState(wagonCount);
-    s.phase = 'ascending';
-    s.trackProgress = 0.5;
-    s.waterFraction = 0;
-    s.speed = TARGET_SPEED_UP;
-    s.altitude = VALLEY_ALT + 0.5 * HEIGHT_DIFF;
-    s.totalMass = getTotalMass(s);
+    let s = createState(wagonCount);
+
+    // First, estimate half-cycle time by running a full cycle
+    let probe = createState(wagonCount);
+    const dt = 1.0;
+    let cycleTime = 0;
+    const startCycles = probe.totalCycles;
+    while (probe.totalCycles === startCycles) {
+      probe = step(probe, dt);
+      cycleTime += dt;
+      if (cycleTime > 10000) break; // safety limit
+    }
+
+    // Pre-simulate Train B for exactly half that cycle
+    const halfCycle = cycleTime / 2;
+    const preSteps = Math.ceil(halfCycle / dt);
+    for (let i = 0; i < preSteps; i++) {
+      s = step(s, dt);
+    }
+
+    // Reset cumulative counters so both trains start fresh
+    s.totalEnergyGenerated = 0;
+    s.totalEnergyConsumed = 0;
+    s.totalCycles = 0;
+    s.totalWaterMoved = 0;
+
     return s;
   }
 
@@ -365,6 +388,8 @@ const Physics = (() => {
     const totalCon = mA.powerConsumed_MW + mB.powerConsumed_MW;
     const catenaryTransfer = Math.min(totalGen, totalCon); // direct wire transfer
     const surplus = totalGen - totalCon;
+    // Buffer is active when there's a net deficit (neither train generating enough)
+    const bufferActive = surplus < -0.01;
 
     const cumGen = mA.totalGenerated_MWh + mB.totalGenerated_MWh;
     const cumCon = mA.totalConsumed_MWh + mB.totalConsumed_MWh;
@@ -380,6 +405,7 @@ const Physics = (() => {
       powerConsumed_MW: totalCon,
       powerSurplus_MW: surplus,
       catenaryTransfer_MW: catenaryTransfer,
+      bufferActive,
 
       // Cumulative
       totalGenerated_MWh: cumGen,
