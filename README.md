@@ -2,6 +2,8 @@
 
 A perpetual gravity-battery power generator that uses water-loaded cargo trains on a double-helix spiral track to harvest gravitational potential energy — with Swiss railway precision.
 
+Inspired by BreakingLab: https://www.youtube.com/watch?v=e9cVl4hmgZY
+
 ## The Concept
 
 Imagine a mountain with an almost infinite water supply at the summit. Two cargo trains run in anti-phase on a double-helix spiral track: one loads water at the top (2,400 m) and descends, while the other ascends empty back to the summit. The wagons are equipped with dynamos that convert the kinetic energy of the heavy, descending train into electricity — which flows directly through the overhead catenary wire to power the ascending train's motors. The surplus powers a datacenter at the valley floor (400 m).
