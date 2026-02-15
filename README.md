@@ -196,14 +196,15 @@ The simulation auto-starts. Use the speed slider to accelerate time and watch cy
 
 ```
 Infinitrain/
-├── index.html       # Main page layout and structure
-├── style.css        # Swiss-precision dark theme design system
-├── physics.js       # Physics engine: gravity, dynamos, friction, energy accounting
-├── helix.js         # Double-helix 3D track renderer with train animation
-├── dashboard.js     # Gauge drawing, stat updates, phase indicators
-├── main.js          # Simulation loop, controls, clock
-├── favicon.svg      # Train-on-helix favicon
-└── README.md        # This file
+├── index.html         # Main page layout and structure
+├── style.css          # Swiss-precision dark theme design system
+├── physics.js         # Physics engine: gravity, dynamos, friction, energy accounting
+├── helix.js           # Double-helix 3D track renderer with train animation
+├── dashboard.js       # Gauge drawing, stat updates, phase indicators
+├── main.js            # Simulation loop, controls, clock
+├── favicon.svg        # Train-on-helix favicon
+├── ARCHITECTURE.md    # Subsystem engineering design (stations, wagons, loco, grid)
+└── README.md          # This file
 ```
 
 ## The Philosophy
