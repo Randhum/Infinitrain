@@ -1,3 +1,5 @@
+> Note this is AI Generated Content. Just explore the idea a little. 
+
 # INFINITRAIN — Swiss Precision Gravity Battery
 
 A perpetual gravity-battery power generator that uses water-loaded cargo trains on a double-helix spiral track to harvest gravitational potential energy — with Swiss railway precision.
