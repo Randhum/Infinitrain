@@ -225,6 +225,59 @@ The numbers work because physics is generous: a 740-tonne train dropping 2,000 m
 
 A perpetual train. An infinite cycle. **Infinitrain.**
 
+## Comparison with Hydropower
+
+Infinitrain is often compared to hydropower, but the comparison requires care: it is fundamentally a **generator** (converting natural gravitational PE to electricity), not a storage system.
+
+### The Three Systems
+
+| | Run-of-River Hydro | Pumped Hydro Storage | Infinitrain |
+|---|---|---|---|
+| **What it does** | Generates from river flow + natural head | Stores externally generated energy | Generates from mountain water + natural head |
+| **Energy source** | Gravitational PE of flowing river | Grid electricity (charged/discharged) | Gravitational PE of mountain water supply |
+| **Round-trip efficiency** | 85--90% [11] | 70--85% [5][12] | ~50% (net surplus / total generated) |
+| **Continuous output** | Depends on river flow (capacity factor 40--80%) [11] | Depends on charge cycle (capacity factor 10--30%) | ~2.9 MW steady (two-train anti-phase) |
+| **Annual output** | Varies widely (1--1,000+ GWh) | Net consumer of energy (stores, not generates) | ~25 GWh/year |
+| **Head (height)** | Typically 2--50 m (low head) | 200--800 m | 2,000 m |
+| **Construction time** | 3--8 years | 8--15 years | Estimated 3--5 years (track + stations) |
+| **Lifespan** | 50--100 years | 50+ years [12] | 40+ years (rail infrastructure) [7] |
+| **Environmental impact** | Fish barriers, altered flow, sediment disruption | Reservoir flooding, dam construction | No dam, no reservoir, water returned clean |
+| **Civil engineering** | Dam or weir + turbine house | Two reservoirs + tunnel + powerhouse | 46 km track + two small stations |
+| **Swiss examples** | Rheinkraftwerk (100 MW) | Nant de Drance (900 MW) [5] | Conceptual (this project) |
+
+### What the Efficiency Numbers Actually Mean
+
+Infinitrain's ~50% "efficiency" is misleading if read as a storage metric. It is not storing anyone else's energy. The 50% means: of the gravitational PE released by the loaded descent, half goes to lifting the empty train back up, and half is surplus. This is an inherent property of the mass ratio (loaded 740 t vs empty 260 t) and conversion losses.
+
+A fairer comparison is **energy harvested per tonne of water per metre of head**:
+
+| System | Energy per tonne per metre head |
+|--------|--------------------------------|
+| Conventional hydro turbine | 9.81 J x 90% = **8.8 J** |
+| Infinitrain (net surplus) | 9.81 J x ~50% x (1 - 260/740) = **3.2 J** |
+
+Infinitrain extracts roughly **36% as much energy per tonne-metre** as a conventional turbine. The penalty comes from two sources: (1) the empty train must be lifted back up (~35% of generated energy), and (2) conversion losses in dynamo/motor chains (~20%). A hydro turbine avoids both because the water exits through the tailrace and the rotor stays in place.
+
+### Where Infinitrain Wins
+
+- **No dam required** -- the single largest cost, environmental impact, and permitting obstacle for hydro. A dam on a Swiss mountain river requires years of environmental review and public consultation. Infinitrain needs only a rail corridor.
+- **No reservoir flooding** -- pumped hydro requires two large water bodies, often created by flooding valleys. Infinitrain moves water in wagons and returns it to the natural watercourse.
+- **Extreme head** -- conventional turbines are limited to ~500--700 m head per stage (beyond that, pressures exceed material limits). Infinitrain exploits a full 2,000 m drop with no pressure vessel -- the water is in open-top wagons at atmospheric pressure.
+- **Modularity** -- add wagons for more power, add trains for more throughput. No civil engineering changes needed.
+- **Dual use** -- the rail infrastructure could carry other freight during maintenance windows.
+
+### Where Conventional Hydro Wins
+
+- **Efficiency** -- 85--90% vs ~50%. For every unit of water, hydro extracts nearly twice the energy.
+- **Power density** -- a single Pelton turbine in a 2,000 m head installation produces 100+ MW. Infinitrain produces ~3 MW. You would need ~30 Infinitrain systems to match one turbine.
+- **Simplicity** -- a penstock and turbine have no moving parts beyond the rotor. Infinitrain has locomotives, wagons, track, switches, catenary, and automation.
+- **Proven at scale** -- hydropower provides ~16% of global electricity [11]. Rail-gravity generation has no commercial installations yet.
+- **Operating cost** -- hydro turbines run with minimal staffing and near-zero fuel cost. Infinitrain requires rail maintenance, wheel/rail wear, and periodic wagon overhaul.
+
+### The Niche
+
+Infinitrain is not a replacement for hydropower. It occupies a specific niche: **sites where a large natural head exists, water is abundant, but a dam is not feasible** -- whether for environmental, geological, political, or economic reasons. Alpine locations with steep terrain and glacial/snowmelt water are ideal candidates. The key advantage is that Infinitrain can exploit elevation differences that are too steep or too remote for conventional hydro, using modular rail infrastructure that is faster to build and easier to decommission than a dam.
+
 ## References
 
 1. **15 kV AC railway electrification** — Wikipedia. Swiss 15 kV 16.7 Hz system history, adopted for the Gotthard line in 1916 during WWI coal shortages. https://en.wikipedia.org/wiki/15_kV_AC_railway_electrification
@@ -237,3 +290,5 @@ A perpetual train. An infinite cycle. **Infinitrain.**
 8. **Swiss electricity grid** — Swissgrid. 220/380 kV transmission, 50 Hz, European interconnection. https://www.swissgrid.ch/en/home/operation/grid-data/load.html
 9. **Limmern pumped storage plant** — Axpo. 1,000 MW facility in the Glarus Alps, operational 2017. https://www.axpo.com/ch/en/energy/generation-and-distribution/wasserkraft/pumpspeicherwerk-limmern.html
 10. **Underground Gravity Energy Storage (UGES)** — Hunt et al., *Energies* 16(2), 2023. Gravity storage using decommissioned mines, $1–10/kWh estimated cost. https://doi.org/10.3390/en16020825
+11. **Hydropower** — International Energy Agency. ~16% of global electricity, capacity factors 40–80% for run-of-river, turbine efficiency 85–90%. https://www.iea.org/energy-system/renewables/hydroelectricity
+12. **Pumped-storage hydroelectricity** — Wikipedia. 96% of global storage capacity, 70–85% round-trip efficiency, 50+ year lifespan. https://en.wikipedia.org/wiki/Pumped-storage_hydroelectricity
