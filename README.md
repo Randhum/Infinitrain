@@ -1,4 +1,4 @@
-> Note this is AI Generated Content. Just explore the idea a little. 
+> Note this is AI Generated Content. Enjoy exploring the thought-experiment :) 
 
 # INFINITRAIN — Swiss Precision Gravity Battery
 
